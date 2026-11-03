@@ -7,11 +7,13 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import ThemeToggle from "@/components/ThemeToggle";
+import { Star, Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await authClient.signOut({
@@ -31,17 +33,23 @@ export default function Navbar() {
     <nav className="bg-[#0b3c3d] dark:bg-[#072425] text-white shadow-lg sticky top-0 z-50 border-b border-emerald-900/50 dark:border-emerald-950 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20 items-center">
-          {/* Logo / Brand Name */}
+          {/* Logo / Brand Name with Gradient */}
           <div className="flex-shrink-0 flex items-center">
             <Link
               href="/"
-              className="text-base sm:text-lg font-bold tracking-wider uppercase text-white hover:text-emerald-300 dark:hover:text-emerald-400 transition-colors"
+              className="flex items-center gap-2.5 text-base sm:text-lg font-bold tracking-wider uppercase group"
             >
-              HERMIONE COMMUNITY EVENTS
+              <div className="p-2 rounded-xl bg-emerald-900/40 dark:bg-emerald-950/60 border border-emerald-700/40 shadow-inner group-hover:scale-105 transition-transform">
+                <Star className="w-5 h-5 text-emerald-400 dark:text-emerald-300 fill-emerald-400/20" />
+              </div>
+              <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-orange-400 bg-clip-text text-transparent font-extrabold">
+                <span className="hidden sm:inline">HERMIONE</span> COMMUNITY
+                EVENTS
+              </span>
             </Link>
           </div>
 
-          {/* Navigation Links */}
+          {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center space-x-8 text-sm font-medium">
             <Link
               href="/events"
@@ -63,7 +71,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Right side: Controls & Profile */}
+          {/* Right side: Controls, Profile & Mobile Hamburger Button */}
           <div className="flex items-center space-x-4">
             <ThemeToggle />
 
@@ -139,14 +147,50 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="bg-transparent hover:bg-emerald-600 dark:hover:bg-emerald-700 border border-white dark:border-emerald-300 text-white px-6 py-2 rounded-full text-xs font-bold tracking-widest uppercase shadow transition-all duration-200"
+                className="bg-transparent hover:bg-emerald-600 dark:hover:bg-emerald-700 border border-white dark:border-emerald-300 text-white px-5 py-2 rounded-full text-xs font-bold tracking-widest uppercase shadow transition-all duration-200"
               >
                 LOG IN
               </Link>
             )}
+
+            {/* Mobile Menu Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg hover:bg-emerald-800/60 transition-colors text-white focus:outline-none"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile Drawer Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-[#072b2c] dark:bg-[#051a1b] border-t border-emerald-900/50 px-4 pt-3 pb-6 space-y-3 animate-fadeIn">
+          <Link
+            href="/events"
+            className="block text-sm font-semibold hover:text-emerald-300 py-2 border-b border-emerald-900/30"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Upcoming Events
+          </Link>
+          <Link
+            href="/gallery"
+            className="block text-sm font-semibold hover:text-emerald-300 py-2 border-b border-emerald-900/30"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Gallery
+          </Link>
+          <Link
+            href="/newsletter"
+            className="block text-sm font-semibold hover:text-emerald-300 py-2 border-b border-emerald-900/30"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Newsletter
+          </Link>
+        </div>
+      )}
     </nav>
   );
 }
