@@ -1,7 +1,8 @@
 import HeroBanner from "@/components/home/HeroBanner";
+import RecentEventsSection from "@/components/home/RecentEventsSection";
 import ImpactGallerySection from "@/components/home/ImpactGallerySection";
 import NewsletterSection from "@/components/home/NewsletterSection";
-import RecentEventsSection from "@/components/home/RecentEventsSection";
+import Footer from "@/components/Footer";
 
 export default function HomePage() {
   return (
@@ -10,6 +11,7 @@ export default function HomePage() {
       <RecentEventsSection />
       <ImpactGallerySection />
       <NewsletterSection />
+      <Footer />
     </div>
   );
 }
