@@ -1,40 +1,155 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
+import { Maximize2, X, Sparkles } from "lucide-react";
 
 export default function ImpactGallerySection() {
-  const images = [
-    "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=500",
-    "https://images.unsplash.com/photo-1532629345422-7515f3d16bb9?w=500",
-    "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=500",
-    "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=500",
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  const galleryItems = [
+    {
+      url: "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800",
+      title: "Community Clean Drive",
+      tag: "Environmental",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800",
+      title: "Charity Food Marathon",
+      tag: "Relief Work",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800",
+      title: "Youth Tech Workshop",
+      tag: "Education",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800",
+      title: "Healthcare Awareness",
+      tag: "Wellness",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800",
+      title: "Community Art Festival",
+      tag: "Culture",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1789758385591-71b1a42235ee?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDE%3D",
+      title: "Local Farmers Market",
+      tag: "Food",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800",
+      title: "Neighborhood Sports Day",
+      tag: "Sports",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800",
+      title: "Community Music Concert",
+      tag: "Entertainment",
+    },
   ];
 
   return (
-    <section className="py-20 px-6 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto text-center mb-12">
-        <h2 className="text-3xl font-extrabold tracking-wide uppercase text-gray-900 dark:text-white">
+    <section className="py-24 px-4 sm:px-6 bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800 transition-colors duration-300 overflow-hidden">
+      {/* Header */}
+      <div className="max-w-7xl mx-auto text-center mb-16 space-y-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-950/60 text-[#f07b42] dark:text-[#e06a35] text-xs font-semibold uppercase tracking-wider">
+          <Sparkles size={14} /> Our Community Footprint
+        </div>
+        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-wide uppercase text-gray-900 dark:text-white">
           Impact in Action
         </h2>
-        <div className="w-16 h-1 bg-[#f07b42] dark:bg-[#e06a35] mx-auto mt-3 rounded-full" />
+        <div className="w-16 h-1 bg-[#f07b42] dark:bg-[#e06a35] mx-auto rounded-full" />
       </div>
 
-      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
-        {images.map((url, idx) => (
+      {/* Gallery Grid & Hover Zoom Layout */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {galleryItems.map((item, idx) => (
           <div
             key={idx}
-            className="relative h-44 w-full rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800 hover:scale-[1.02] transition-all duration-300"
+            onClick={() => setSelectedImage(item)}
+            className="group relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden cursor-pointer shadow-md border border-gray-100 dark:border-gray-800 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5"
           >
+            {/* Background Image */}
             <Image
-              src={url}
-              alt={`Impact Image ${idx + 1}`}
+              src={item.url}
+              alt={item.title}
               fill
-              sizes="(max-width: 768px) 50vw, 25vw"
-              className="object-cover"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
             />
+
+            {/* Gradient Dark Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300" />
+
+            {/* Top Tag */}
+            <div className="absolute top-4 left-4">
+              <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider border border-white/20">
+                {item.tag}
+              </span>
+            </div>
+
+            {/* Fullscreen Expand Icon */}
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="p-2 rounded-full bg-black/40 text-white backdrop-blur-md hover:bg-black/60">
+                <Maximize2 size={16} />
+              </div>
+            </div>
+
+            {/* Bottom Title */}
+            <div className="absolute bottom-4 left-4 right-4 space-y-1 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
+              <h3 className="text-white font-bold text-base sm:text-lg leading-snug">
+                {item.title}
+              </h3>
+              <p className="text-gray-300 text-xs flex items-center gap-1 font-medium">
+                Click to view photo
+              </p>
+            </div>
           </div>
         ))}
       </div>
+
+      {/* Lightbox Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fadeIn"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div
+            className="relative max-w-4xl w-full max-h-[85vh] h-full rounded-2xl overflow-hidden shadow-2xl border border-gray-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src={selectedImage.url}
+              alt={selectedImage.title}
+              fill
+              className="object-contain"
+            />
+
+            {/* Modal Top Bar */}
+            <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
+              <span className="px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-semibold">
+                {selectedImage.tag}
+              </span>
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="p-2 rounded-full bg-black/60 text-white hover:bg-black/90 backdrop-blur-md transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Bottom Caption */}
+            <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black via-black/70 to-transparent text-white space-y-1">
+              <h3 className="text-xl font-bold">{selectedImage.title}</h3>
+              <p className="text-xs text-gray-300">
+                Hermione Community Events — Impact Highlights
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
