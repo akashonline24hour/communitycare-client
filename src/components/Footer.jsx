@@ -1,10 +1,15 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Star, Heart, ArrowUpRight, Mail } from "lucide-react";
 
 export default function Footer() {
-  const currentYear = new Date().getFullYear();
+  const [currentYear, setCurrentYear] = useState("2026");
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear().toString());
+  }, []);
 
   return (
     <footer className="relative bg-[#072425] dark:bg-[#041617] text-white pt-16 pb-12 px-6 border-t border-emerald-900/60 dark:border-emerald-950 overflow-hidden transition-colors duration-300">
