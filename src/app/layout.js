@@ -19,7 +19,6 @@ export default function RootLayout({ children }) {
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Navbar />
           <main className="flex-grow">{children}</main>
-
           <ToastContainer
             position="bottom-right"
             autoClose={3000}

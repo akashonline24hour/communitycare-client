@@ -11,18 +11,19 @@ export default function ImpactGallerySection() {
   ];
 
   return (
-    <section className="py-20 px-6 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 transition-colors">
+    <section className="py-20 px-6 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 transition-colors duration-300">
       <div className="max-w-7xl mx-auto text-center mb-12">
         <h2 className="text-3xl font-extrabold tracking-wide uppercase text-gray-900 dark:text-white">
           Impact in Action
         </h2>
-        <div className="w-16 h-1 bg-[#f07b42] mx-auto mt-3 rounded-full" />
+        <div className="w-16 h-1 bg-[#f07b42] dark:bg-[#e06a35] mx-auto mt-3 rounded-full" />
       </div>
+
       <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
         {images.map((url, idx) => (
           <div
             key={idx}
-            className="relative h-44 w-full rounded-xl overflow-hidden shadow-sm hover:scale-[1.02] transition-transform"
+            className="relative h-44 w-full rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800 hover:scale-[1.02] transition-all duration-300"
           >
             <Image
               src={url}

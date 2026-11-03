@@ -55,7 +55,7 @@ export default function RecentEventsSection() {
           {recentEvents.map((event) => (
             <div
               key={event._id}
-              className="bg-white dark:bg-gray-900 rounded-2xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-800 flex flex-col justify-between hover:shadow-xl transition-all duration-300 group"
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-800 flex flex-col justify-between hover:shadow-xl transition-all duration-300 group"
             >
               <div>
                 <div className="relative w-full h-52 overflow-hidden">
