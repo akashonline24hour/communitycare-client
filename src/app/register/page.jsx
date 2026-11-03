@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "react-toastify";
+import { User, Mail, Lock, Image as ImageIcon, Check, X } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -14,8 +15,24 @@ export default function RegisterPage() {
   const [image, setImage] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Individual password requirement checkers for real-time validation UI
+  const hasMinLength = password.length >= 6;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecialChar = /[\W_]/.test(password);
+
+  const isPasswordValid =
+    hasMinLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
+
   const handleRegister = async (e) => {
     e.preventDefault();
+
+    if (!isPasswordValid) {
+      toast.error("Please meet all password requirements before registering.");
+      return;
+    }
+
     setLoading(true);
 
     await authClient.signUp.email({
@@ -111,60 +128,114 @@ export default function RegisterPage() {
             <label className="block text-xs font-semibold uppercase text-gray-700 dark:text-gray-300 mb-1">
               Full Name
             </label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="John Doe"
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3c3d] text-sm"
-            />
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <User size={16} />
+              </span>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="John Doe"
+                className="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3c3d] text-sm"
+              />
+            </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold uppercase text-gray-700 dark:text-gray-300 mb-1">
               Email Address
             </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3c3d] text-sm"
-            />
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <Mail size={16} />
+              </span>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3c3d] text-sm"
+              />
+            </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold uppercase text-gray-700 dark:text-gray-300 mb-1">
               Password
             </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3c3d] text-sm"
-            />
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <Lock size={16} />
+              </span>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3c3d] text-sm"
+              />
+            </div>
+
+            {/* Real-time Password Checklist */}
+            <div className="mt-2 grid grid-cols-1 gap-1 text-[11px]">
+              <p
+                className={`flex items-center gap-1.5 ${hasMinLength ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"}`}
+              >
+                {hasMinLength ? <Check size={13} /> : <X size={13} />} At least
+                6 characters
+              </p>
+              <p
+                className={`flex items-center gap-1.5 ${hasUpperCase ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"}`}
+              >
+                {hasUpperCase ? <Check size={13} /> : <X size={13} />} One
+                uppercase letter (A-Z)
+              </p>
+              <p
+                className={`flex items-center gap-1.5 ${hasLowerCase ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"}`}
+              >
+                {hasLowerCase ? <Check size={13} /> : <X size={13} />} One
+                lowercase letter (a-z)
+              </p>
+              <p
+                className={`flex items-center gap-1.5 ${hasNumber ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"}`}
+              >
+                {hasNumber ? <Check size={13} /> : <X size={13} />} One number
+                (0-9)
+              </p>
+              <p
+                className={`flex items-center gap-1.5 ${hasSpecialChar ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"}`}
+              >
+                {hasSpecialChar ? <Check size={13} /> : <X size={13} />} One
+                special character (!@#$%^&*)
+              </p>
+            </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold uppercase text-gray-700 dark:text-gray-300 mb-1">
               Profile Image URL (Optional)
             </label>
-            <input
-              type="url"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="https://..."
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3c3d] text-sm"
-            />
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <ImageIcon size={16} />
+              </span>
+              <input
+                type="url"
+                value={image}
+                onChange={(e) => setImage(e.target.value)}
+                placeholder="https://..."
+                className="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b3c3d] text-sm"
+              />
+            </div>
           </div>
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !isPasswordValid}
             className="w-full bg-[#f07b42] hover:bg-[#e06a35] dark:bg-[#e06a35] dark:hover:bg-[#c95926] text-white py-3 rounded-full font-bold uppercase text-xs tracking-wider shadow transition-all duration-200 disabled:opacity-50"
           >
             {loading ? "Creating Account..." : "Register"}
