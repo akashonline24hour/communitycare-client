@@ -9,9 +9,17 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "Hermione Community Events",
-  description: "Building a Stronger Community, Together",
+  description: "Connecting hearts to empower local communities.",
+  icons: {
+    icon: [
+      {
+        url: "/logo.png", 
+        sizes: "50x50",
+        type: "image/png",
+      },
+    ],
+  },
 };
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
