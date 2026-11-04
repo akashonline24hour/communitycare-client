@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,8 +9,6 @@ import { toast } from "react-toastify";
 import {
   Calendar,
   MapPin,
-  Mail,
-  User,
   ArrowLeft,
   CheckCircle2,
   Users,
@@ -20,10 +18,7 @@ import {
   Check,
 } from "lucide-react";
 
-export default function EventDetailsPage({ params }) {
-  const resolvedParams = use(params);
-  const eventId = resolvedParams.id;
-
+export default function EventDetailsClient({ eventId }) {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
 
@@ -182,6 +177,7 @@ export default function EventDetailsPage({ params }) {
             alt={event.title}
             fill
             priority
+            sizes="(max-width: 1200px) 100vw, 1200px"
             className="object-cover opacity-90"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
@@ -267,7 +263,6 @@ export default function EventDetailsPage({ params }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: About & Guidelines */}
           <div className="lg:col-span-2 space-y-6">
-            {/* About Card */}
             <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
               <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
                 <Sparkles size={16} className="text-[#f07b42]" /> About this
@@ -278,7 +273,6 @@ export default function EventDetailsPage({ params }) {
               </p>
             </div>
 
-            {/* Volunteer Guidelines */}
             <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
               <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">
                 Volunteer Guidelines
@@ -317,7 +311,6 @@ export default function EventDetailsPage({ params }) {
 
           {/* Right Column: Organizer & Confirmed Volunteers */}
           <div className="space-y-6">
-            {/* Initiative Organizer Card */}
             <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm space-y-4">
               <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
                 Initiative Organizer
@@ -329,6 +322,7 @@ export default function EventDetailsPage({ params }) {
                       src={event.organizerImage}
                       alt={event.organizerName || "Organizer"}
                       fill
+                      sizes="48px"
                       className="object-cover"
                     />
                   </div>
@@ -351,7 +345,6 @@ export default function EventDetailsPage({ params }) {
               </div>
             </div>
 
-            {/* Confirmed Volunteers List */}
             <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm space-y-4">
               <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
                 Confirmed Volunteers ({attendeesCount})
