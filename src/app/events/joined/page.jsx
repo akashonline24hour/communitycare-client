@@ -6,12 +6,26 @@ import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import {
+  Calendar,
+  MapPin,
+  CalendarCheck,
+  ArrowRight,
+  LogOut,
+  Sparkles,
+  AlertCircle,
+  X,
+} from "lucide-react";
 
 export default function JoinedEventsPage() {
   const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
   const [joinedEvents, setJoinedEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal state for custom confirmation pop-up
+  const [eventToLeave, setEventToLeave] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -22,7 +36,7 @@ export default function JoinedEventsPage() {
 
     if (session?.user?.email) {
       fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/events/joined/${session.user.email}`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/events/joined/${session.user.email}`,
       )
         .then((res) => {
           if (!res.ok) throw new Error("Failed to load joined events");
@@ -40,22 +54,19 @@ export default function JoinedEventsPage() {
     }
   }, [session, isPending, router]);
 
-  const handleLeaveEvent = async (eventId) => {
-    if (
-      !confirm(
-        "Are you sure you want to cancel your registration for this event?",
-      )
-    )
-      return;
+  const handleConfirmLeave = async () => {
+    if (!eventToLeave) return;
+
+    setActionLoading(true);
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/events/leave`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/events/leave`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            eventId,
+            eventId: eventToLeave,
             userEmail: session.user.email,
           }),
         },
@@ -64,45 +75,62 @@ export default function JoinedEventsPage() {
       if (!res.ok) throw new Error("Failed to leave event");
 
       setJoinedEvents((prev) =>
-        prev.filter((item) => item.eventId !== eventId && item._id !== eventId),
+        prev.filter(
+          (item) => item.eventId !== eventToLeave && item._id !== eventToLeave,
+        ),
       );
       toast.success("Registration cancelled successfully");
+      setEventToLeave(null);
     } catch (err) {
       console.error(err);
       toast.error("Could not cancel registration");
+    } finally {
+      setActionLoading(false);
     }
   };
 
   if (isPending || loading) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-[#0b3c3d] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-[75vh] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#0b3c3d] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-100 transition-colors duration-300 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-wide text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-gray-50/60 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-10">
+        {/* Header Section */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-[#0b3c3d] dark:text-emerald-300 text-xs font-semibold uppercase tracking-wider">
+            <Sparkles size={14} className="text-[#f07b42]" /> Participant
+            Dashboard
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-wider text-gray-900 dark:text-white">
             My Joined Events
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Events you have registered to participate in
+          <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-sm sm:text-base">
+            Manage the community initiatives and gatherings you have registered
+            to attend.
           </p>
         </div>
 
-        {/* Joined Events List */}
+        {/* Joined Events Grid or Empty State */}
         {joinedEvents.length === 0 ? (
-          <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              You haven't registered for any events yet.
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-12 text-center space-y-4 max-w-md mx-auto shadow-sm">
+            <div className="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-950/60 text-[#f07b42] flex items-center justify-center mx-auto">
+              <CalendarCheck size={28} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              No Registered Events
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              You haven't registered to participate in any community initiatives
+              yet.
             </p>
             <Link
               href="/events"
-              className="inline-block bg-[#f07b42] hover:bg-[#e06a35] dark:bg-[#e06a35] dark:hover:bg-[#c95926] text-white px-6 py-2.5 rounded-full font-bold uppercase text-xs tracking-wider shadow transition-colors"
+              className="inline-block bg-[#f07b42] hover:bg-[#e06a35] dark:bg-[#e06a35] dark:hover:bg-[#c95926] text-white px-6 py-3 rounded-full font-bold uppercase text-xs tracking-wider shadow-md transition-colors"
             >
               Explore Upcoming Events
             </Link>
@@ -111,59 +139,138 @@ export default function JoinedEventsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {joinedEvents.map((item) => {
               const event = item.eventDetails || item;
+              const rawDate = event.eventDate || event.date;
+              const formattedDate = rawDate
+                ? new Date(rawDate).toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : "Upcoming";
+
+              const eventType =
+                event.eventType || event.category || "Community Event";
+              const targetEventId = event._id || item.eventId;
+
               return (
                 <div
                   key={item._id}
-                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-800 flex flex-col justify-between hover:shadow-xl transition-all duration-300 group"
+                  className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group hover:-translate-y-1.5 justify-between"
                 >
                   <div>
-                    <div className="relative w-full h-48 overflow-hidden">
+                    {/* Thumbnail & Badge */}
+                    <div className="relative h-52 w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
                       <Image
                         src={
                           event.thumbnail ||
-                          "https://images.unsplash.com/photo-1532629345422-7515f3d16bb9?w=500"
+                          event.image ||
+                          "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800"
                         }
                         alt={event.title || "Event Image"}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
+                      <div className="absolute top-4 left-4">
+                        <span className="px-3.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-white text-[11px] font-semibold tracking-wide border border-white/20 shadow-sm flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          {eventType}
+                        </span>
+                      </div>
                     </div>
-                    <div className="p-6 space-y-2">
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1">
+
+                    {/* Card Content */}
+                    <div className="p-6 space-y-3">
+                      <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-1 text-[#f07b42]">
+                          <Calendar size={14} />
+                          <span>{formattedDate}</span>
+                        </div>
+                        <div className="flex items-center gap-1 truncate max-w-[160px]">
+                          <MapPin size={14} />
+                          <span className="truncate">
+                            {event.location || "Dhaka"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-[#0b3c3d] dark:group-hover:text-emerald-400 transition-colors leading-snug line-clamp-2">
                         {event.title}
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                        📍 {event.location || "Dhaka"}
-                      </p>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                        📅{" "}
-                        {event.eventDate
-                          ? new Date(event.eventDate).toLocaleDateString()
-                          : "Upcoming"}
+
+                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                        {event.description}
                       </p>
                     </div>
                   </div>
 
-                  <div className="p-6 pt-0 flex gap-3">
+                  {/* Footer Actions */}
+                  <div className="p-6 pt-0 flex items-center gap-3">
                     <Link
-                      href={`/events/${event._id || item.eventId}`}
-                      className="flex-1 text-center bg-[#0b3c3d] hover:bg-[#072425] text-white py-2.5 rounded-full font-semibold uppercase text-xs tracking-wider transition-colors"
+                      href={`/events/${targetEventId}`}
+                      className="flex-1 inline-flex items-center justify-center gap-1 bg-[#0b3c3d] hover:bg-[#072a2b] dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white py-3 rounded-2xl text-xs font-bold uppercase tracking-wider shadow transition-colors"
                     >
-                      Details
+                      Details <ArrowRight size={14} />
                     </Link>
                     <button
-                      onClick={() =>
-                        handleLeaveEvent(event._id || item.eventId)
-                      }
-                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-full font-semibold uppercase text-xs tracking-wider transition-colors"
+                      onClick={() => setEventToLeave(targetEventId)}
+                      className="inline-flex items-center justify-center gap-1 bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider shadow transition-colors"
+                      title="Leave Event"
                     >
-                      Leave
+                      <LogOut size={14} /> Leave
                     </button>
                   </div>
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Custom Confirmation Pop-up Modal */}
+        {eventToLeave && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-500 flex items-center justify-center shrink-0">
+                  <AlertCircle size={24} />
+                </div>
+                <button
+                  onClick={() => setEventToLeave(null)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                  Cancel Registration?
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                  Are you sure you want to cancel your registration for this
+                  community initiative? You can always rejoin later if spots are
+                  available.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={() => setEventToLeave(null)}
+                  disabled={actionLoading}
+                  className="flex-1 py-3 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold uppercase text-xs tracking-wider hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Keep Registration
+                </button>
+                <button
+                  onClick={handleConfirmLeave}
+                  disabled={actionLoading}
+                  className="flex-1 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-bold uppercase text-xs tracking-wider shadow-md shadow-red-500/20 transition-colors disabled:opacity-50"
+                >
+                  {actionLoading ? "Cancelling..." : "Yes, Leave"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
