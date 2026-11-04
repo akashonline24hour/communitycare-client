@@ -65,7 +65,7 @@ export default function Navbar() {
               href="/"
               className="flex items-center gap-3 text-base sm:text-lg font-bold tracking-wider uppercase group"
             >
-              {/* Full Logo Container with Crisp White Padding to Keep Entire Graphic Visible */}
+              {/* Full Logo Container with Solid White Background & Padding to Ensure Entire Graphic is Visible */}
               <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white p-1 shadow-md border border-emerald-400/40 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 group-hover:border-[#f07b42] group-hover:shadow-orange-500/30 transition-all duration-300">
                 <Image
                   src="/logo.png"

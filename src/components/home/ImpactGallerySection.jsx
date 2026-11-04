@@ -1,16 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Maximize2, X, Sparkles } from "lucide-react";
 
 export default function ImpactGallerySection() {
   const [selectedImage, setSelectedImage] = useState(null);
-  const [galleryItems, setGalleryItems] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  // Static fallback items
-  const staticGalleryItems = [
+  // Static items array
+  const galleryItems = [
     {
       url: "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800",
       title: "Community Clean Drive",
@@ -33,33 +31,6 @@ export default function ImpactGallerySection() {
     },
   ];
 
-  useEffect(() => {
-    const API_URL =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-
-    fetch(`${API_URL}/gallery`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch gallery");
-        return res.json();
-      })
-      .then((data) => {
-        if (data && data.length > 0) {
-          setGalleryItems(data);
-        } else {
-          setGalleryItems(staticGalleryItems);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.warn(
-          "Using static gallery fallback due to network/API error:",
-          err,
-        );
-        setGalleryItems(staticGalleryItems);
-        setLoading(false);
-      });
-  }, []);
-
   return (
     <section className="py-24 px-4 sm:px-6 bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800 transition-colors duration-300 overflow-hidden">
       {/* Header */}
@@ -75,50 +46,43 @@ export default function ImpactGallerySection() {
 
       {/* Gallery Grid */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {loading
-          ? [1, 2, 3, 4].map((n) => (
-              <div
-                key={n}
-                className="h-72 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse"
-              />
-            ))
-          : galleryItems.map((item, idx) => (
-              <div
-                key={idx}
-                onClick={() => setSelectedImage(item)}
-                className="group relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden cursor-pointer shadow-md border border-gray-100 dark:border-gray-800 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5"
-              >
-                <Image
-                  src={item.url}
-                  alt={item.title}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300" />
+        {galleryItems.map((item, idx) => (
+          <div
+            key={idx}
+            onClick={() => setSelectedImage(item)}
+            className="group relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden cursor-pointer shadow-md border border-gray-100 dark:border-gray-800 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5"
+          >
+            <Image
+              src={item.url}
+              alt={item.title}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300" />
 
-                <div className="absolute top-4 left-4">
-                  <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider border border-white/20">
-                    {item.tag}
-                  </span>
-                </div>
+            <div className="absolute top-4 left-4">
+              <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider border border-white/20">
+                {item.tag}
+              </span>
+            </div>
 
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="p-2 rounded-full bg-black/40 text-white backdrop-blur-md hover:bg-black/60">
-                    <Maximize2 size={16} />
-                  </div>
-                </div>
-
-                <div className="absolute bottom-4 left-4 right-4 space-y-1 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
-                  <h3 className="text-white font-bold text-base sm:text-lg leading-snug">
-                    {item.title}
-                  </h3>
-                  <p className="text-gray-300 text-xs flex items-center gap-1 font-medium">
-                    Click to view photo
-                  </p>
-                </div>
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="p-2 rounded-full bg-black/40 text-white backdrop-blur-md hover:bg-black/60">
+                <Maximize2 size={16} />
               </div>
-            ))}
+            </div>
+
+            <div className="absolute bottom-4 left-4 right-4 space-y-1 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
+              <h3 className="text-white font-bold text-base sm:text-lg leading-snug">
+                {item.title}
+              </h3>
+              <p className="text-gray-300 text-xs flex items-center gap-1 font-medium">
+                Click to view photo
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Lightbox Modal */}
@@ -136,6 +100,7 @@ export default function ImpactGallerySection() {
                 src={selectedImage.url}
                 alt={selectedImage.title}
                 fill
+                sizes="(max-width: 1024px) 100vw, 1200px"
                 className="object-contain"
               />
             </div>
