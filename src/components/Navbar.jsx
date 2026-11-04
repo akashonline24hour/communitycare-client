@@ -8,16 +8,17 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
-  Star,
   Menu,
   X,
   PlusCircle,
   Calendar,
   CheckSquare,
   LogOut,
-  Sparkles,
   Images,
   Mail,
+  Info,
+  Shield,
+  Phone,
   ChevronDown,
 } from "lucide-react";
 
@@ -62,11 +63,20 @@ export default function Navbar() {
           <div className="flex-shrink-0 flex items-center">
             <Link
               href="/"
-              className="flex items-center gap-2.5 text-base sm:text-lg font-bold tracking-wider uppercase group"
+              className="flex items-center gap-3 text-base sm:text-lg font-bold tracking-wider uppercase group"
             >
-              <div className="p-2.5 rounded-2xl bg-emerald-900/40 dark:bg-emerald-950/60 border border-emerald-700/40 shadow-inner group-hover:scale-105 transition-transform">
-                <Star className="w-5 h-5 text-emerald-400 dark:text-emerald-300 fill-emerald-400/20" />
+              {/* Full Logo Container with Crisp White Padding to Keep Entire Graphic Visible */}
+              <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white p-1 shadow-md border border-emerald-400/40 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 group-hover:border-[#f07b42] group-hover:shadow-orange-500/30 transition-all duration-300">
+                <Image
+                  src="/logo.png"
+                  alt="Hermione Community Events Logo"
+                  width={48}
+                  height={48}
+                  priority
+                  className="w-full h-full object-contain"
+                />
               </div>
+
               <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-orange-400 bg-clip-text text-transparent font-extrabold tracking-tight">
                 <span className="hidden sm:inline">HERMIONE</span> COMMUNITY
               </span>
@@ -74,12 +84,12 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center space-x-8 text-xs font-bold uppercase tracking-wider">
+          <div className="hidden lg:flex items-center space-x-6 text-xs font-bold uppercase tracking-wider">
             <Link
               href="/events"
               className="hover:text-emerald-300 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5"
             >
-              <Calendar size={15} className="text-[#f07b42]" /> Upcoming Events
+              <Calendar size={15} className="text-[#f07b42]" /> Events
             </Link>
             <Link
               href="/gallery"
@@ -88,10 +98,16 @@ export default function Navbar() {
               <Images size={15} className="text-[#f07b42]" /> Gallery
             </Link>
             <Link
-              href="/newsletter"
+              href="/about"
               className="hover:text-emerald-300 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5"
             >
-              <Mail size={15} className="text-[#f07b42]" /> Newsletter
+              <Info size={15} className="text-[#f07b42]" /> About
+            </Link>
+            <Link
+              href="/contact"
+              className="hover:text-emerald-300 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+            >
+              <Phone size={15} className="text-[#f07b42]" /> Contact
             </Link>
           </div>
 
@@ -108,7 +124,7 @@ export default function Navbar() {
                   className="flex items-center gap-2 cursor-pointer group p-1 rounded-full bg-emerald-900/30 border border-emerald-700/40 hover:border-emerald-400 transition-all"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                 >
-                  <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden shadow-sm">
+                  <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden shadow-sm shrink-0">
                     <Image
                       src={
                         session.user.image ||
@@ -116,6 +132,7 @@ export default function Navbar() {
                       }
                       alt={session.user.name || "User Avatar"}
                       fill
+                      sizes="40px"
                       className="object-cover group-hover:scale-105 transition-transform"
                     />
                   </div>
@@ -125,7 +142,7 @@ export default function Navbar() {
                   />
                 </div>
 
-                {/* Modern Dropdown Menu Popover */}
+                {/* Popover Dropdown Menu */}
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-3 w-60 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-3xl shadow-2xl py-3 px-2 z-50 border border-gray-100 dark:border-gray-800 animate-in fade-in slide-in-from-top-2 duration-200">
                     {/* User Info Header */}
@@ -201,7 +218,7 @@ export default function Navbar() {
             {/* Mobile Menu Toggle Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl bg-emerald-900/40 hover:bg-emerald-800/60 transition-colors text-white focus:outline-none"
+              className="lg:hidden p-2 rounded-xl bg-emerald-900/40 hover:bg-emerald-800/60 transition-colors text-white focus:outline-none"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -212,7 +229,7 @@ export default function Navbar() {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#072b2c] dark:bg-[#051a1b] border-t border-emerald-900/50 px-6 py-5 space-y-4 animate-in fade-in slide-in-from-top-2">
+        <div className="lg:hidden bg-[#072b2c] dark:bg-[#051a1b] border-t border-emerald-900/50 px-6 py-5 space-y-4 animate-in fade-in slide-in-from-top-2">
           <Link
             href="/events"
             className="flex items-center gap-3 text-xs font-bold uppercase tracking-wider hover:text-emerald-300 py-2 border-b border-emerald-900/30"
@@ -228,11 +245,25 @@ export default function Navbar() {
             <Images size={16} className="text-[#f07b42]" /> Gallery
           </Link>
           <Link
-            href="/newsletter"
+            href="/about"
+            className="flex items-center gap-3 text-xs font-bold uppercase tracking-wider hover:text-emerald-300 py-2 border-b border-emerald-900/30"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <Info size={16} className="text-[#f07b42]" /> About Us
+          </Link>
+          <Link
+            href="/contact"
+            className="flex items-center gap-3 text-xs font-bold uppercase tracking-wider hover:text-emerald-300 py-2 border-b border-emerald-900/30"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <Phone size={16} className="text-[#f07b42]" /> Contact
+          </Link>
+          <Link
+            href="/privacy"
             className="flex items-center gap-3 text-xs font-bold uppercase tracking-wider hover:text-emerald-300 py-2"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <Mail size={16} className="text-[#f07b42]" /> Newsletter
+            <Shield size={16} className="text-[#f07b42]" /> Privacy Policy
           </Link>
         </div>
       )}
