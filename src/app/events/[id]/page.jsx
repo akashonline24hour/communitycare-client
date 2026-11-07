@@ -1,26 +1,26 @@
-import { Suspense } from "react";
 import EventDetailsClient from "@/components/EventDetailsClient";
 
-function EventDetailsWrapper({ params }) {
-  return <AsyncEventDetails params={params} />;
+const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+
+// Sets the browser tab title and description for each event
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+
+  try {
+    const res = await fetch(`${API}/events/${id}`, { cache: "no-store" });
+    if (!res.ok) return { title: "Event | Community Events" };
+
+    const event = await res.json();
+    return {
+      title: `${event.title} | Community Events`,
+      description: String(event.description || "").slice(0, 150),
+    };
+  } catch {
+    return { title: "Event | Community Events" };
+  }
 }
 
-async function AsyncEventDetails({ params }) {
-  const resolvedParams = await params;
-  const eventId = resolvedParams.id;
-  return <EventDetailsClient eventId={eventId} />;
-}
-
-export default function EventDetailsPage({ params }) {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-[75vh] flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-[#0b3c3d] border-t-transparent rounded-full animate-spin" />
-        </div>
-      }
-    >
-      <EventDetailsWrapper params={params} />
-    </Suspense>
-  );
+export default async function EventDetailsPage({ params }) {
+  const { id } = await params;
+  return <EventDetailsClient eventId={id} />;
 }

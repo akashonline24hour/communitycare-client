@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import { apiFetch } from "@/lib/api";
 import { toast } from "react-toastify";
 import {
   Calendar,
@@ -16,7 +17,21 @@ import {
   Share2,
   ShieldCheck,
   Check,
+  AlertCircle,
 } from "lucide-react";
+
+const pad = (n) => String(n).padStart(2, "0");
+const todayString = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+// Shows "ak***@gmail.com" so public visitors never see full emails
+const maskEmail = (value = "") => {
+  const [name, domain] = String(value).split("@");
+  if (!domain) return value;
+  return `${name.slice(0, 2)}***@${domain}`;
+};
 
 export default function EventDetailsClient({ eventId }) {
   const router = useRouter();
@@ -24,137 +39,129 @@ export default function EventDetailsClient({ eventId }) {
 
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
   const [actionLoading, setActionLoading] = useState(false);
-  const [isJoined, setIsJoined] = useState(false);
 
-  const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const email = session?.user?.email;
 
+  // Load the event (public, so no token is needed)
   useEffect(() => {
-    const fetchEventDetails = async () => {
-      try {
-        const res = await fetch(`${API_URL}/events/${eventId}`);
+    if (!eventId) return;
 
-        if (!res.ok) {
-          throw new Error("API endpoint returned an error");
-        }
+    let cancelled = false;
+    setLoading(true);
+    setLoadError("");
 
-        const data = await res.json();
-
-        if (data) {
-          setEvent(data);
-          // Check if current user is among attendees
-          if (
-            session?.user?.email &&
-            data.attendees?.includes(session.user.email)
-          ) {
-            setIsJoined(true);
-          }
-        } else {
-          throw new Error("Event data not found");
-        }
-      } catch (err) {
-        console.warn(
-          "API fetch failed, using fallback event data for preview:",
-          err,
+    apiFetch(`/events/${eventId}`)
+      .then((data) => {
+        if (!cancelled) setEvent(data);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error(err);
+        setEvent(null);
+        setLoadError(
+          err.status === 404 || err.status === 400
+            ? "not-found"
+            : err.message || "Could not load this event.",
         );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-        // Fallback mock event so UI renders perfectly even if DB/Backend is offline
-        setEvent({
-          _id: eventId,
-          title: "Community Food Drive & Relief Distribution",
-          description:
-            "Join our dedicated team as we distribute essential grocery packages and warm meals to underprivileged families in the local neighborhood. Together, we can make a tangible difference in our community's well-being.",
-          date: "2026-11-20",
-          location: "Central Community Hall, Block B",
-          eventType: "Relief Work",
-          image:
-            "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=1200",
-          organizerName: "Akash Chandra Paul",
-          organizerEmail: "akashonline24hours@gmail.com",
-          attendees: [
-            "akashonline24hours@gmail.com",
-            "volunteer@goodgather.org",
-          ],
-        });
-      } finally {
-        setLoading(false);
-      }
+    return () => {
+      cancelled = true;
     };
+  }, [eventId, reloadKey]);
 
-    if (eventId) {
-      fetchEventDetails();
-    }
-  }, [eventId, session, API_URL]);
+  const attendees = event?.attendees || [];
+  const isJoined = !!email && attendees.includes(email);
 
   const handleToggleJoin = async () => {
+    // The page is public, but joining needs a login
     if (!session) {
-      toast.error("Please log in to join this initiative!");
-      router.push("/login");
+      toast.info("Please log in to join this initiative!");
+      router.push(`/login?redirect=/events/${eventId}`);
       return;
     }
 
     setActionLoading(true);
 
     try {
-      const endpoint = isJoined
-        ? `${API_URL}/events/leave`
-        : `${API_URL}/events/join`;
-      const payload = isJoined
-        ? { eventId, userEmail: session.user.email }
-        : {
-            eventId,
-            userEmail: session.user.email,
-            userName: session.user.name,
-          };
-
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        // If backend route isn't set up yet, update state locally for smooth UX
-        console.warn(
-          "Backend join endpoint unreachable, updating UI state locally.",
-        );
-      }
-
+      // The user comes from the token on the server, so only the event ID is sent
       if (isJoined) {
-        setIsJoined(false);
+        await apiFetch("/events/leave", {
+          method: "POST",
+          auth: true,
+          body: { eventId },
+        });
         setEvent((prev) => ({
           ...prev,
-          attendees:
-            prev.attendees?.filter((email) => email !== session.user.email) ||
-            [],
+          attendees: (prev.attendees || []).filter((e) => e !== email),
         }));
-        toast.success("Successfully left the initiative.");
+        toast.success("You have left this initiative.");
       } else {
-        setIsJoined(true);
+        await apiFetch("/events/join", {
+          method: "POST",
+          auth: true,
+          body: { eventId },
+        });
         setEvent((prev) => ({
           ...prev,
-          attendees: [...(prev.attendees || []), session.user.email],
+          attendees: [...(prev.attendees || []), email],
         }));
-        toast.success("Successfully joined the initiative! 🎉");
+        toast.success("You have joined this initiative!");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Error updating participation status. Please try again.");
+      if (err.status === 401) {
+        toast.error("Your session expired. Please log in again.");
+        router.push(`/login?redirect=/events/${eventId}`);
+      } else {
+        // If the screen was out of date, sync it with the server's answer
+        if (err.message === "You have already joined this event") {
+          setEvent((prev) => ({
+            ...prev,
+            attendees: [...new Set([...(prev.attendees || []), email])],
+          }));
+        }
+        toast.error(err.message || "Could not update your participation.");
+      }
     } finally {
       setActionLoading(false);
     }
   };
 
-  if (loading || isPending) {
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Event link copied to clipboard!");
+    } catch {
+      toast.error(
+        "Could not copy the link. Please copy it from the address bar.",
+      );
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-[75vh] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-[#0b3c3d] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-gray-50/60 dark:bg-gray-950 py-10 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto space-y-6 animate-pulse">
+          <div className="h-4 w-32 rounded bg-gray-200 dark:bg-gray-800" />
+          <div className="h-80 sm:h-[400px] w-full rounded-3xl bg-gray-200 dark:bg-gray-800" />
+          <div className="h-20 w-full rounded-3xl bg-gray-200 dark:bg-gray-800" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 h-56 rounded-3xl bg-gray-200 dark:bg-gray-800" />
+            <div className="h-56 rounded-3xl bg-gray-200 dark:bg-gray-800" />
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (!event) {
+  if (loadError === "not-found") {
     return (
       <div className="min-h-[75vh] flex flex-col items-center justify-center text-center px-4 space-y-4">
         <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-950/60 text-[#f07b42] flex items-center justify-center mx-auto shadow-sm">
@@ -176,16 +183,45 @@ export default function EventDetailsClient({ eventId }) {
     );
   }
 
-  const rawDate = event.date || event.eventDate;
-  const formattedDate = new Date(rawDate).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  if (loadError || !event) {
+    return (
+      <div className="min-h-[75vh] flex flex-col items-center justify-center text-center px-4 space-y-4">
+        <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-950/60 text-red-500 flex items-center justify-center mx-auto shadow-sm">
+          <AlertCircle size={30} />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+          Could Not Load Event
+        </h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
+          {loadError || "Something went wrong while loading this event."}
+        </p>
+        <button
+          onClick={() => setReloadKey((k) => k + 1)}
+          className="bg-[#0b3c3d] hover:bg-[#072a2b] dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white px-6 py-3 rounded-full text-xs font-bold uppercase tracking-wider shadow transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
-  const eventType = event.eventType || event.category || "Donation";
-  const attendeesCount = event.attendees?.length || 0;
+  const rawDate = event.eventDate || event.date;
+  const parsedDate = rawDate ? new Date(rawDate) : null;
+  const formattedDate =
+    parsedDate && !Number.isNaN(parsedDate.getTime())
+      ? parsedDate.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          timeZone: "UTC",
+        })
+      : "Date to be announced";
+
+  const hasEnded = !!rawDate && String(rawDate).slice(0, 10) < todayString();
+  const eventType = event.eventType || event.category || "Community Event";
+  const attendeesCount = attendees.length;
+  const isOrganizer = !!email && event.organizerEmail === email;
 
   return (
     <div className="min-h-screen bg-gray-50/60 dark:bg-gray-950 py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
@@ -204,11 +240,11 @@ export default function EventDetailsClient({ eventId }) {
         <div className="relative h-80 sm:h-[400px] w-full rounded-3xl overflow-hidden shadow-xl bg-gray-900">
           <Image
             src={
-              event.image ||
               event.thumbnail ||
+              event.image ||
               "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1200"
             }
-            alt={event.title}
+            alt={event.title || "Event image"}
             fill
             priority
             sizes="(max-width: 1200px) 100vw, 1200px"
@@ -254,19 +290,18 @@ export default function EventDetailsClient({ eventId }) {
                 {attendeesCount === 1 ? "Volunteer" : "Volunteers"} Joined
               </p>
               <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                {isJoined
-                  ? "You are confirmed for this initiative"
-                  : "Join this community effort today!"}
+                {hasEnded
+                  ? "This initiative has already taken place"
+                  : isJoined
+                    ? "You are confirmed for this initiative"
+                    : "Join this community effort today!"}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <button
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                toast.success("Event link copied to clipboard!");
-              }}
+              onClick={handleShare}
               title="Share event"
               className="p-3 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
@@ -279,15 +314,20 @@ export default function EventDetailsClient({ eventId }) {
                 disabled={actionLoading}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50"
               >
-                <CheckCircle2 size={16} /> Joined (Click to Leave)
+                <CheckCircle2 size={16} />
+                {actionLoading ? "Processing..." : "Joined (Click to Leave)"}
               </button>
             ) : (
               <button
                 onClick={handleToggleJoin}
-                disabled={actionLoading}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#f07b42] hover:bg-[#e06a35] text-white px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50"
+                disabled={actionLoading || isPending || hasEnded}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#f07b42] hover:bg-[#e06a35] text-white px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {actionLoading ? "Processing..." : "Join Initiative"}
+                {actionLoading
+                  ? "Processing..."
+                  : hasEnded
+                    ? "Event Ended"
+                    : "Join Initiative"}
               </button>
             )}
           </div>
@@ -370,13 +410,23 @@ export default function EventDetailsClient({ eventId }) {
                     {event.organizerName || "Community Organizer"}
                   </p>
                   <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                    {event.organizerEmail || "organizer@goodgather.org"}
+                    {isOrganizer
+                      ? "You organized this event"
+                      : maskEmail(event.organizerEmail)}
                   </p>
                 </div>
               </div>
               <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                 <ShieldCheck size={14} /> Verified Platform Member
               </div>
+              {isOrganizer && (
+                <Link
+                  href="/events/manage"
+                  className="block text-center text-[11px] font-bold uppercase tracking-wider text-[#0b3c3d] dark:text-emerald-400 hover:underline"
+                >
+                  Manage your events
+                </Link>
+              )}
             </div>
 
             <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm space-y-4">
@@ -390,15 +440,17 @@ export default function EventDetailsClient({ eventId }) {
                 </p>
               ) : (
                 <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
-                  {event.attendees.map((email, idx) => (
+                  {attendees.map((attendee) => (
                     <div
-                      key={idx}
+                      key={attendee}
                       className="flex items-center gap-2.5 text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-2xl"
                     >
                       <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
-                        {email[0]}
+                        {attendee[0]}
                       </div>
-                      <span className="truncate">{email}</span>
+                      <span className="truncate">
+                        {attendee === email ? "You" : maskEmail(attendee)}
+                      </span>
                     </div>
                   ))}
                 </div>
