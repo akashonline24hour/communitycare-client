@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import { apiFetch } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import {
@@ -22,37 +23,64 @@ export default function JoinedEventsPage() {
   const router = useRouter();
   const [joinedEvents, setJoinedEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Modal state for custom confirmation pop-up
   const [eventToLeave, setEventToLeave] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  const email = session?.user?.email;
+  const hasSession = !!session;
+
   useEffect(() => {
-    if (!isPending && !session) {
+    if (isPending) return;
+
+    if (!hasSession) {
       toast.error("Please log in to view your joined events");
-      router.push("/login");
+      router.replace("/login?redirect=/events/joined");
       return;
     }
 
-    if (session?.user?.email) {
-      fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/events/joined/${session.user.email}`,
-      )
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to load joined events");
-          return res.json();
-        })
-        .then((data) => {
-          setJoinedEvents(data);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error(err);
-          toast.error("Could not fetch joined events");
-          setLoading(false);
-        });
-    }
-  }, [session, isPending, router]);
+    let cancelled = false;
+    setLoading(true);
+    setLoadError("");
+
+    apiFetch(`/events/joined/${encodeURIComponent(email)}`, { auth: true })
+      .then((data) => {
+        if (cancelled) return;
+
+        if (process.env.NODE_ENV !== "production") {
+          console.log("[Joined events] response for", email, data);
+        }
+
+        const list = Array.isArray(data) ? data : [];
+        // Sorted by event date (soonest first)
+        const sorted = [...list].sort(
+          (a, b) =>
+            new Date(a.eventDetails?.eventDate) -
+            new Date(b.eventDetails?.eventDate),
+        );
+        setJoinedEvents(sorted);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error(err);
+        if (err.status === 401) {
+          toast.error("Your session expired. Please log in again.");
+          router.replace("/login?redirect=/events/joined");
+          return;
+        }
+        setLoadError(err.message || "Could not fetch joined events");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPending, hasSession, email, router, reloadKey]);
 
   const handleConfirmLeave = async () => {
     if (!eventToLeave) return;
@@ -60,30 +88,24 @@ export default function JoinedEventsPage() {
     setActionLoading(true);
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/events/leave`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventId: eventToLeave,
-            userEmail: session.user.email,
-          }),
-        },
-      );
-
-      if (!res.ok) throw new Error("Failed to leave event");
+      // The user comes from the token on the server, so only the event ID is sent
+      await apiFetch("/events/leave", {
+        method: "POST",
+        auth: true,
+        body: { eventId: eventToLeave },
+      });
 
       setJoinedEvents((prev) =>
-        prev.filter(
-          (item) => item.eventId !== eventToLeave && item._id !== eventToLeave,
-        ),
+        prev.filter((item) => String(item.eventId) !== String(eventToLeave)),
       );
       toast.success("Registration cancelled successfully");
       setEventToLeave(null);
     } catch (err) {
       console.error(err);
-      toast.error("Could not cancel registration");
+      toast.error(err.message || "Could not cancel registration");
+      if (err.status === 401) {
+        router.replace("/login?redirect=/events/joined");
+      }
     } finally {
       setActionLoading(false);
     }
@@ -115,8 +137,27 @@ export default function JoinedEventsPage() {
           </p>
         </div>
 
-        {/* Joined Events Grid or Empty State */}
-        {joinedEvents.length === 0 ? (
+        {/* Error State */}
+        {loadError ? (
+          <div className="bg-white dark:bg-gray-900 border border-red-100 dark:border-red-950 rounded-3xl p-12 text-center space-y-4 max-w-md mx-auto shadow-sm">
+            <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-950/60 text-red-500 flex items-center justify-center mx-auto">
+              <AlertCircle size={28} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              Could Not Load Events
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {loadError}
+            </p>
+            <button
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="inline-block bg-[#0b3c3d] hover:bg-[#072a2b] dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white px-6 py-3 rounded-full font-bold uppercase text-xs tracking-wider shadow-md transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : joinedEvents.length === 0 ? (
+          /* Empty State */
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-12 text-center space-y-4 max-w-md mx-auto shadow-sm">
             <div className="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-950/60 text-[#f07b42] flex items-center justify-center mx-auto">
               <CalendarCheck size={28} />
@@ -146,12 +187,13 @@ export default function JoinedEventsPage() {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
+                    timeZone: "UTC",
                   })
                 : "Upcoming";
 
               const eventType =
                 event.eventType || event.category || "Community Event";
-              const targetEventId = event._id || item.eventId;
+              const targetEventId = String(event._id || item.eventId);
 
               return (
                 <div
@@ -187,7 +229,7 @@ export default function JoinedEventsPage() {
                           <Calendar size={14} />
                           <span>{formattedDate}</span>
                         </div>
-                        <div className="flex items-center gap-1 truncate max-w-[160px]">
+                        <div className="flex items-center gap-1 truncate max-w-40">
                           <MapPin size={14} />
                           <span className="truncate">
                             {event.location || "Dhaka"}
