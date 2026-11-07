@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import { apiFetch } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import {
@@ -17,8 +18,69 @@ import {
   AlertCircle,
   X,
   Users,
-  ArrowRight,
 } from "lucide-react";
+
+// Must match the server's allowed event types
+const eventTypes = [
+  "Donation",
+  "Cleanup",
+  "Plantation",
+  "Winter Relief",
+  "Food Drive",
+  "Health Camp",
+  "Education",
+];
+
+const formatDate = (d) => {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+const todayString = () => formatDate(new Date());
+const maxDateString = () => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 5);
+  return formatDate(d);
+};
+
+// Returns the first error message, or null when everything is valid
+function validateForm({
+  title,
+  eventType,
+  location,
+  eventDate,
+  thumbnail,
+  description,
+}) {
+  const t = title.trim();
+  const l = location.trim();
+  const d = description.trim();
+
+  if (t.length < 3 || t.length > 100)
+    return "Title must be between 3 and 100 characters";
+  if (!eventTypes.includes(eventType))
+    return "Please select a valid event type";
+  if (l.length < 3 || l.length > 150)
+    return "Location must be between 3 and 150 characters";
+  if (!eventDate) return "Please choose an event date";
+  if (eventDate < todayString())
+    return "Event date must be in the future. Choose a new date to update this event.";
+  if (eventDate > maxDateString())
+    return "Event date cannot be more than 5 years ahead";
+
+  let url;
+  try {
+    url = new URL(thumbnail.trim());
+  } catch {
+    return "Enter a valid thumbnail image URL";
+  }
+  if (url.protocol !== "https:")
+    return "Thumbnail URL must start with https://";
+
+  if (d.length < 10 || d.length > 2000)
+    return "Description must be between 10 and 2000 characters";
+
+  return null;
+}
 
 export default function ManageEventsPage() {
   const { data: session, isPending } = authClient.useSession();
@@ -38,45 +100,43 @@ export default function ManageEventsPage() {
     location: "",
     eventDate: "",
     eventType: "Donation",
+    thumbnail: "",
   });
 
-  const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-
-  const eventTypes = [
-    "Donation",
-    "Cleanup",
-    "Plantation",
-    "Winter Relief",
-    "Food Drive",
-    "Health Camp",
-    "Education",
-  ];
+  const email = session?.user?.email;
+  const hasSession = !!session;
 
   useEffect(() => {
-    if (!isPending && !session) {
+    if (isPending) return;
+
+    if (!hasSession) {
       toast.error("Please log in to manage your events");
-      router.push("/login");
+      router.replace("/login?redirect=/events/manage");
       return;
     }
 
-    if (session?.user?.email) {
-      fetch(`${API_URL}/events/organizer/${session.user.email}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to load your events");
-          return res.json();
-        })
-        .then((data) => {
-          setEvents(data);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error(err);
-          toast.error("Error fetching events");
-          setLoading(false);
-        });
-    }
-  }, [session, isPending, router, API_URL]);
+    let cancelled = false;
+
+    apiFetch(`/events/organizer/${encodeURIComponent(email)}`, { auth: true })
+      .then((data) => {
+        if (!cancelled) setEvents(data);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error(err);
+        toast.error(err.message || "Error fetching events");
+        if (err.status === 401) {
+          router.replace("/login?redirect=/events/manage");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPending, hasSession, email, router]);
 
   // Open Edit Modal & Populate Form
   const handleOpenEdit = (event) => {
@@ -86,9 +146,10 @@ export default function ManageEventsPage() {
       description: event.description || "",
       location: event.location || "",
       eventDate: event.eventDate
-        ? new Date(event.eventDate).toISOString().slice(0, 16)
+        ? new Date(event.eventDate).toISOString().slice(0, 10)
         : "",
       eventType: event.eventType || event.category || "Donation",
+      thumbnail: event.thumbnail || "",
     });
   };
 
@@ -97,20 +158,34 @@ export default function ManageEventsPage() {
     e.preventDefault();
     if (!eventToEdit) return;
 
+    const message = validateForm(editForm);
+    if (message) {
+      toast.error(message);
+      return;
+    }
+
+    const payload = {
+      title: editForm.title.trim(),
+      description: editForm.description.trim(),
+      location: editForm.location.trim(),
+      eventDate: editForm.eventDate,
+      eventType: editForm.eventType,
+      thumbnail: editForm.thumbnail.trim(),
+    };
+
     setActionLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/events/${eventToEdit._id}`, {
+      // The server checks that you are the creator of this event
+      await apiFetch(`/events/${eventToEdit._id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        auth: true,
+        body: payload,
       });
-
-      if (!res.ok) throw new Error("Failed to update event");
 
       setEvents((prev) =>
         prev.map((item) =>
-          item._id === eventToEdit._id ? { ...item, ...editForm } : item,
+          item._id === eventToEdit._id ? { ...item, ...payload } : item,
         ),
       );
 
@@ -118,7 +193,10 @@ export default function ManageEventsPage() {
       setEventToEdit(null);
     } catch (err) {
       console.error(err);
-      toast.error("Could not update event details.");
+      toast.error(err.message || "Could not update event details.");
+      if (err.status === 401) {
+        router.replace("/login?redirect=/events/manage");
+      }
     } finally {
       setActionLoading(false);
     }
@@ -131,18 +209,20 @@ export default function ManageEventsPage() {
     setActionLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/events/${eventToDelete}`, {
+      await apiFetch(`/events/${eventToDelete}`, {
         method: "DELETE",
+        auth: true,
       });
-
-      if (!res.ok) throw new Error("Failed to delete event");
 
       setEvents((prev) => prev.filter((event) => event._id !== eventToDelete));
       toast.success("Event deleted successfully");
       setEventToDelete(null);
     } catch (err) {
       console.error(err);
-      toast.error("Could not delete event");
+      toast.error(err.message || "Could not delete event");
+      if (err.status === 401) {
+        router.replace("/login?redirect=/events/manage");
+      }
     } finally {
       setActionLoading(false);
     }
@@ -212,6 +292,7 @@ export default function ManageEventsPage() {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
+                    timeZone: "UTC",
                   })
                 : "Upcoming";
 
@@ -311,8 +392,8 @@ export default function ManageEventsPage() {
 
         {/* Custom Edit Modal Pop-up */}
         {eventToEdit && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6 my-auto">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-gray-900 dark:text-white font-bold text-lg uppercase tracking-wider">
                   <Edit size={18} className="text-[#f07b42]" /> Edit Initiative
@@ -326,7 +407,11 @@ export default function ManageEventsPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
+              <form
+                onSubmit={handleSaveEdit}
+                noValidate
+                className="space-y-4 text-xs"
+              >
                 <div>
                   <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
                     Event Title
@@ -380,15 +465,33 @@ export default function ManageEventsPage() {
 
                 <div>
                   <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Date & Time
+                    Event Date (Future Date Required)
                   </label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     required
+                    min={todayString()}
+                    max={maxDateString()}
                     value={editForm.eventDate}
                     onChange={(e) =>
                       setEditForm({ ...editForm, eventDate: e.target.value })
                     }
+                    className="w-full px-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#0b3c3d] outline-none cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Thumbnail Image URL
+                  </label>
+                  <input
+                    type="url"
+                    required
+                    value={editForm.thumbnail}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, thumbnail: e.target.value })
+                    }
+                    placeholder="https://images.unsplash.com/..."
                     className="w-full px-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#0b3c3d] outline-none"
                   />
                 </div>
