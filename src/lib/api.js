@@ -11,6 +11,9 @@ export async function apiFetch(
   if (auth) {
     const { data } = await authClient.token();
 
+    // For debugging
+    console.log(data);
+
     if (!data?.token) {
       const err = new Error("Please log in to continue");
       err.status = 401;
