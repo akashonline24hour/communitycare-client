@@ -82,8 +82,8 @@ export default function Navbar() {
                 <Image
                   src="/logo.png"
                   alt="Hermione Community Events Logo"
-                  width={48}
-                  height={48}
+                  width={100}
+                  height={100}
                   priority
                   className="w-full h-full object-contain"
                 />
