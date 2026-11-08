@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import EventDetailsClient from "@/components/EventDetailsClient";
 
 export const metadata = {
-  title: "Event Details | Hermione Community Events",
+  title: "Event Details",
 };
 
 async function AsyncEventDetails({ params }) {
