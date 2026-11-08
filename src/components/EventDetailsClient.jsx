@@ -20,11 +20,18 @@ import {
   AlertCircle,
 } from "lucide-react";
 
+const HERO_FALLBACK =
+  "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1200";
+
 const pad = (n) => String(n).padStart(2, "0");
 const todayString = () => {
   const d = new Date();
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
+
+// next/image only allows https images, so anything else falls back to a safe image
+const safeImage = (url, fallback) =>
+  typeof url === "string" && url.startsWith("https://") ? url : fallback;
 
 // Shows "ak***@gmail.com" so public visitors never see full emails
 const maskEmail = (value = "") => {
@@ -50,12 +57,12 @@ export default function EventDetailsClient({ eventId }) {
     if (!eventId) return;
 
     let cancelled = false;
-    setLoading(true);
-    setLoadError("");
 
     apiFetch(`/events/${eventId}`)
       .then((data) => {
-        if (!cancelled) setEvent(data);
+        if (cancelled) return;
+        setEvent(data);
+        setLoadError("");
       })
       .catch((err) => {
         if (cancelled) return;
@@ -75,6 +82,19 @@ export default function EventDetailsClient({ eventId }) {
       cancelled = true;
     };
   }, [eventId, reloadKey]);
+
+  // Show the event's name in the browser tab once it has loaded
+  useEffect(() => {
+    if (event?.title) {
+      document.title = `${event.title} | Hermione Community Events`;
+    }
+  }, [event?.title]);
+
+  const handleRetry = () => {
+    setLoadError("");
+    setLoading(true);
+    setReloadKey((k) => k + 1);
+  };
 
   const attendees = event?.attendees || [];
   const isJoined = !!email && attendees.includes(email);
@@ -196,7 +216,7 @@ export default function EventDetailsClient({ eventId }) {
           {loadError || "Something went wrong while loading this event."}
         </p>
         <button
-          onClick={() => setReloadKey((k) => k + 1)}
+          onClick={handleRetry}
           className="bg-[#0b3c3d] hover:bg-[#072a2b] dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white px-6 py-3 rounded-full text-xs font-bold uppercase tracking-wider shadow transition-colors"
         >
           Try Again
@@ -222,6 +242,7 @@ export default function EventDetailsClient({ eventId }) {
   const eventType = event.eventType || event.category || "Community Event";
   const attendeesCount = attendees.length;
   const isOrganizer = !!email && event.organizerEmail === email;
+  const organizerPhoto = safeImage(event.organizerImage, "");
 
   return (
     <div className="min-h-screen bg-gray-50/60 dark:bg-gray-950 py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
@@ -239,11 +260,7 @@ export default function EventDetailsClient({ eventId }) {
         {/* Hero Banner Container */}
         <div className="relative h-80 sm:h-[400px] w-full rounded-3xl overflow-hidden shadow-xl bg-gray-900">
           <Image
-            src={
-              event.thumbnail ||
-              event.image ||
-              "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1200"
-            }
+            src={safeImage(event.thumbnail || event.image, HERO_FALLBACK)}
             alt={event.title || "Event image"}
             fill
             priority
@@ -390,10 +407,10 @@ export default function EventDetailsClient({ eventId }) {
                 Initiative Organizer
               </h4>
               <div className="flex items-center gap-3">
-                {event.organizerImage ? (
+                {organizerPhoto ? (
                   <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 shadow-inner">
                     <Image
-                      src={event.organizerImage}
+                      src={organizerPhoto}
                       alt={event.organizerName || "Organizer"}
                       fill
                       sizes="48px"

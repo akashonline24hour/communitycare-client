@@ -7,7 +7,7 @@ export const metadata = {
 
 async function AsyncEventDetails({ params }) {
   const { id } = await params;
-  return <EventDetailsClient eventId={id} />;
+  return <EventDetailsClient key={id} eventId={id} />;
 }
 
 export default function EventDetailsPage({ params }) {
