@@ -9,25 +9,13 @@ import SocialAuthToast from "@/components/SocialAuthToast";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Hermione Community Events",
-  description: "Connecting hearts to empower local communities.",
-  icons: {
-    icon: [
-      {
-        url: "/logo.png",
-        type: "image/png",
-        sizes: "32x32",
-      },
-      {
-        url: "/logo.png",
-        type: "image/png",
-        sizes: "192x192",
-      },
-    ],
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+  title: {
+    default: "Hermione Community Events",
+    template: "%s | Hermione Community Events",
   },
+  description: "Connecting hearts to empower local communities.",
 };
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
