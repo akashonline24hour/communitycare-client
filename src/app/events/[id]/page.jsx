@@ -1,26 +1,25 @@
+import { Suspense } from "react";
 import EventDetailsClient from "@/components/EventDetailsClient";
 
-const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+export const metadata = {
+  title: "Event Details | Hermione Community Events",
+};
 
-// Sets the browser tab title and description for each event
-export async function generateMetadata({ params }) {
-  const { id } = await params;
-
-  try {
-    const res = await fetch(`${API}/events/${id}`, { cache: "no-store" });
-    if (!res.ok) return { title: "Event | Community Events" };
-
-    const event = await res.json();
-    return {
-      title: `${event.title} | Community Events`,
-      description: String(event.description || "").slice(0, 150),
-    };
-  } catch {
-    return { title: "Event | Community Events" };
-  }
-}
-
-export default async function EventDetailsPage({ params }) {
+async function AsyncEventDetails({ params }) {
   const { id } = await params;
   return <EventDetailsClient eventId={id} />;
+}
+
+export default function EventDetailsPage({ params }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[75vh] flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-[#0b3c3d] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <AsyncEventDetails params={params} />
+    </Suspense>
+  );
 }
