@@ -15,11 +15,11 @@ import {
   CheckSquare,
   LogOut,
   Images,
-  Mail,
   Info,
   Shield,
   Phone,
   ChevronDown,
+  LayoutDashboard,
 } from "lucide-react";
 
 export default function Navbar() {
@@ -46,13 +46,25 @@ export default function Navbar() {
         onSuccess: () => {
           toast.success("Logged out successfully!");
           setDropdownOpen(false);
-          router.push("/login");
+          setMobileMenuOpen(false);
+          router.replace("/login");
+          router.refresh();
         },
         onError: (ctx) => {
           toast.error(ctx.error?.message || "Failed to log out");
         },
       },
     });
+  };
+
+  const toggleDropdown = () => {
+    setMobileMenuOpen(false);
+    setDropdownOpen((open) => !open);
+  };
+
+  const toggleMobileMenu = () => {
+    setDropdownOpen(false);
+    setMobileMenuOpen((open) => !open);
   };
 
   return (
@@ -89,7 +101,7 @@ export default function Navbar() {
               href="/events"
               className="hover:text-emerald-300 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5"
             >
-              <Calendar size={15} className="text-[#f07b42]" /> Events
+              <Calendar size={15} className="text-[#f07b42]" /> Upcoming Events
             </Link>
             <Link
               href="/gallery"
@@ -118,93 +130,119 @@ export default function Navbar() {
             {isPending ? (
               <div className="w-10 h-10 rounded-full bg-emerald-800/60 dark:bg-emerald-900/60 animate-pulse" />
             ) : session ? (
-              <div className="relative" ref={dropdownRef}>
-                {/* User Avatar Trigger */}
-                <div
-                  className="flex items-center gap-2 cursor-pointer group p-1 rounded-full bg-emerald-900/30 border border-emerald-700/40 hover:border-emerald-400 transition-all"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                >
-                  <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden shadow-sm shrink-0">
-                    <Image
-                      src={
-                        session.user.image ||
-                        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
-                      }
-                      alt={session.user.name || "User Avatar"}
-                      fill
-                      sizes="40px"
-                      className="object-cover group-hover:scale-105 transition-transform"
+              <div className="flex items-center gap-3">
+                <div className="relative" ref={dropdownRef}>
+                  {/* User Avatar Trigger (hover shows the display name) */}
+                  <button
+                    type="button"
+                    title={session.user.name || "My account"}
+                    aria-haspopup="menu"
+                    aria-expanded={dropdownOpen}
+                    className="flex items-center gap-2 cursor-pointer group p-1 rounded-full bg-emerald-900/30 border border-emerald-700/40 hover:border-emerald-400 transition-all"
+                    onClick={toggleDropdown}
+                  >
+                    <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden shadow-sm shrink-0">
+                      <Image
+                        src={
+                          session.user.image ||
+                          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
+                        }
+                        alt={session.user.name || "User Avatar"}
+                        fill
+                        sizes="40px"
+                        className="object-cover group-hover:scale-105 transition-transform"
+                      />
+                    </div>
+                    <ChevronDown
+                      size={14}
+                      className="text-emerald-300 hidden sm:block mr-1 group-hover:translate-y-0.5 transition-transform"
                     />
-                  </div>
-                  <ChevronDown
-                    size={14}
-                    className="text-emerald-300 hidden sm:block mr-1 group-hover:translate-y-0.5 transition-transform"
-                  />
+                  </button>
+
+                  {/* Popover Dropdown Menu */}
+                  {dropdownOpen && (
+                    <div className="absolute right-0 mt-3 w-60 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-3xl shadow-2xl py-3 px-2 z-50 border border-gray-100 dark:border-gray-800 animate-in fade-in slide-in-from-top-2 duration-200">
+                      {/* User Info Header */}
+                      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 mb-2 space-y-0.5">
+                        <p className="text-sm font-bold truncate text-gray-900 dark:text-white">
+                          {session.user.name}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                          {session.user.email}
+                        </p>
+                      </div>
+
+                      {/* Navigation Items with Icons */}
+                      <div className="space-y-1">
+                        <Link
+                          href="/dashboard"
+                          className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-[#0b3c3d] dark:hover:text-emerald-300 transition-colors"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <div className="p-1.5 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
+                            <LayoutDashboard size={15} />
+                          </div>
+                          <span>Dashboard</span>
+                        </Link>
+
+                        <Link
+                          href="/events/create"
+                          className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-[#0b3c3d] dark:hover:text-emerald-300 transition-colors"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <div className="p-1.5 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-[#f07b42]">
+                            <PlusCircle size={15} />
+                          </div>
+                          <span>Create Event</span>
+                        </Link>
+
+                        <Link
+                          href="/events/manage"
+                          className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-[#0b3c3d] dark:hover:text-emerald-300 transition-colors"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-[#0b3c3d] dark:text-emerald-400">
+                            <Calendar size={15} />
+                          </div>
+                          <span>Manage Events</span>
+                        </Link>
+
+                        <Link
+                          href="/events/joined"
+                          className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-[#0b3c3d] dark:hover:text-emerald-300 transition-colors"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <div className="p-1.5 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                            <CheckSquare size={15} />
+                          </div>
+                          <span>Joined Events</span>
+                        </Link>
+                      </div>
+
+                      <hr className="my-2 border-gray-100 dark:border-gray-800" />
+
+                      {/* Logout Button */}
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
+                      >
+                        <div className="p-1.5 rounded-xl bg-red-100 dark:bg-red-950/60 text-red-500">
+                          <LogOut size={15} />
+                        </div>
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                {/* Popover Dropdown Menu */}
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-3 w-60 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-3xl shadow-2xl py-3 px-2 z-50 border border-gray-100 dark:border-gray-800 animate-in fade-in slide-in-from-top-2 duration-200">
-                    {/* User Info Header */}
-                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 mb-2 space-y-0.5">
-                      <p className="text-sm font-bold truncate text-gray-900 dark:text-white">
-                        {session.user.name}
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                        {session.user.email}
-                      </p>
-                    </div>
-
-                    {/* Navigation Items with Icons */}
-                    <div className="space-y-1">
-                      <Link
-                        href="/events/create"
-                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-[#0b3c3d] dark:hover:text-emerald-300 transition-colors"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <div className="p-1.5 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-[#f07b42]">
-                          <PlusCircle size={15} />
-                        </div>
-                        <span>Create Event</span>
-                      </Link>
-
-                      <Link
-                        href="/events/manage"
-                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-[#0b3c3d] dark:hover:text-emerald-300 transition-colors"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-[#0b3c3d] dark:text-emerald-400">
-                          <Calendar size={15} />
-                        </div>
-                        <span>Manage Events</span>
-                      </Link>
-
-                      <Link
-                        href="/events/joined"
-                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-[#0b3c3d] dark:hover:text-emerald-300 transition-colors"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <div className="p-1.5 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
-                          <CheckSquare size={15} />
-                        </div>
-                        <span>Joined Events</span>
-                      </Link>
-                    </div>
-
-                    <hr className="my-2 border-gray-100 dark:border-gray-800" />
-
-                    {/* Logout Button */}
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
-                    >
-                      <div className="p-1.5 rounded-xl bg-red-100 dark:bg-red-950/60 text-red-500">
-                        <LogOut size={15} />
-                      </div>
-                      <span>Logout</span>
-                    </button>
-                  </div>
-                )}
+                {/* Visible Logout button next to the profile picture (medium screens and up) */}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="hidden md:inline-flex items-center gap-1.5 bg-white/10 hover:bg-red-500 border border-white/20 hover:border-red-500 text-white px-4 py-2.5 rounded-full text-xs font-bold tracking-widest uppercase transition-all duration-200"
+                >
+                  <LogOut size={14} /> Logout
+                </button>
               </div>
             ) : (
               <Link
@@ -217,9 +255,10 @@ export default function Navbar() {
 
             {/* Mobile Menu Toggle Button */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={toggleMobileMenu}
               className="lg:hidden p-2 rounded-xl bg-emerald-900/40 hover:bg-emerald-800/60 transition-colors text-white focus:outline-none"
               aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>

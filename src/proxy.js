@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
-const PRIVATE_ROUTES = ["/events/create", "/events/manage", "/events/joined"];
+const PRIVATE_ROUTES = [
+  "/dashboard",
+  "/events/create",
+  "/events/manage",
+  "/events/joined",
+];
 const AUTH_PAGES = ["/login", "/register"];
 
 export async function proxy(request) {
@@ -34,6 +39,7 @@ export const config = {
   matcher: [
     "/login",
     "/register",
+    "/dashboard",
     "/events/create",
     "/events/manage",
     "/events/joined",
