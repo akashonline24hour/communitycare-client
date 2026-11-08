@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ThemeProvider } from "next-themes";
+import SocialAuthToast from "@/components/SocialAuthToast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -40,6 +41,7 @@ export default function RootLayout({ children }) {
             hideProgressBar={false}
             theme="colored"
           />
+          <SocialAuthToast />
         </ThemeProvider>
       </body>
     </html>
